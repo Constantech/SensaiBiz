@@ -1,0 +1,63 @@
+
+Backup docker-compose.yaml in Docker Manager
+hPanel → VPS 781980 → Docker Manager → Click your project (e.g., "root") → "Edit" compose file. Copy the entire YAML content to a local file
+
+Backup n8n Workflows and Configs (SSH)
+List running/stopped containers: docker ps -a. Export workflows via n8n UI if accessible
+(http://82.29.167.96:5678 → Settings → Export).
+
+Backup PostgreSQL Databases (SSH)
+Ensure postgres container is running (if not, start via Docker Manager → "Deploy"). List databases: docker exec <postgres-container> psql -U <user> -l.
+Backup each (repeat for your 3 databases; adjust <container>, <user>, <db>):
+
+docker exec n8n-postgres psql -U n8n -l
+
+mkdir databackup
+
+docker exec n8n-postgres pg_dump -U n8n n8ndb > /root/databackup/n8ndb_backup_$(date +%Y%m%d).sql
+docker exec n8n-postgres pg_dump -U n8n postgres > /root/databackup/postgres_backup_$(date +%Y%m%d).sql
+docker exec n8n-postgres pg_dump -U n8n template0 > /root/databackup/template0_backup_$(date +%Y%m%d).sql
+docker exec n8n-postgres pg_dump -U n8n template1 > /root/databackup/template1_backup_$(date +%Y%m%d).sql
+
+Stop the Project in Docker Manager
+hPanel → VPS 781980 → Docker Manager → Click "root" project → "Stop"
+
+Remove Stopped Containers (SSH)
+List: docker ps -a (look for names like root-n8n-1, n8n-postgres, root-pgadmin-1).
+
+docker rm root-n8n-1
+docker rm n8n-postgres
+docker rm redis
+docker rm root-n8n-worker-1
+docker rm root-traefik-1
+
+Remove Old Volumes (SSH)
+List: docker volume ls
+
+docker volume rm n8n_data
+docker volume rm root_pgdata
+docker volume rm traefik_data
+
+Step 3: Update docker-compose.yaml for New PostgreSQL Version (Docker Manager)
+Edit in Docker Manager:
+Docker Manager → "root" project → "Edit" compose file.
+Paste your backed-up YAML as base, then update:
+Postgres service: Change image: postgres:<old-version> to image: postgres:<new-version> (e.g., postgres:16).
+Ensure volumes are defined at the bottom (Docker auto-creates them on deploy).
+Remove version: 'x.x' line (avoids warnings).
+Example complete file (adapt to your backup; includes n8n template elements like Redis/Traefik if present):
+
+Add environment variables at project level (Docker Manager → Environment Variables tab) or in YAML:
+SSL_EMAIL=your-email@example.com
+SUBDOMAIN= (blank or your subdomain)
+DOMAIN_NAME=srv781980.hstgr.cloud (for Traefik HTTPS)
+GENERIC_TIMEZONE=Australia/Brisbane
+
+Add Server in pgadmin (details located in yaml file)
+hostname: n8n-postgres
+U: n8n
+P: Li5EASzIPRJBG0MUNVdy
+
+
+
+SELECT * FROM pg_extension WHERE extname = 'vector';
