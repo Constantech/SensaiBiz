@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+  /* We use @apply to set defaults using Tailwind classes */
+  @apply bg-slate-50 text-slate-800 antialiased; 
+}
